@@ -4,21 +4,21 @@
 # Customized by Khanh Pham
 # Target: Ubuntu 20.04/22.04 Fresh Install
 
-# === Colors ===
+# Mau sac
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# === Check Root ===
+# Kiem tra quyen root
 if [ "$(id -u)" != "0" ]; then
-   echo -e "${RED}Error: You must run this script as root!${NC}"
+   echo -e "${RED}Loi: Ban phai chay script nay bang quyen root!${NC}"
    exit 1
 fi
 
-# === Check Curl ===
-command -v curl >/dev/null 2>&1 || { echo -e "${RED}Error: curl is required but not installed. Aborting.${NC}"; exit 1; }
+# Kiem tra curl
+command -v curl >/dev/null 2>&1 || { echo -e "${RED}Loi: chua cai dat curl. Huy bo.${NC}"; exit 1; }
 
-# === Variables ===
+# Bien
 INSTALL_DIR="/opt/n8n"
 BACKUP_DIR="/opt/backups"
 POSTGRES_DB="n8n"
@@ -27,42 +27,42 @@ TIMEZONE="Asia/Ho_Chi_Minh"
 LOG_FILE="$INSTALL_DIR/install.log"
 
 clear
-echo -e "${GREEN}=== Welcome to n8n Auto Installer PRO ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO ===${NC}"
 
-# === Input Section ===
-echo "Enter your domain or subdomain (example: n8n.yourdomain.com):"
+# Nhap thong tin
+echo "Nhap domain hoac subdomain (vi du: n8n.tenmien.com):"
 read DOMAIN_NAME
 
-echo "Enter Database Password (PostgreSQL):"
+echo "Nhap mat khau cho Database PostgreSQL:"
 read POSTGRES_PASSWORD
 
-echo "Enter n8n Basic Auth Username (example: admin):"
+echo "Nhap Ten dang nhap n8n:"
 read N8N_BASIC_USER
 
-echo "Enter n8n Basic Auth Password (example: strongpass123):"
+echo "Nhap Mat khau dang nhap n8n:"
 read N8N_BASIC_PASSWORD
 
 N8N_ENCRYPTION_KEY=$(openssl rand -base64 32)
 
-# === Update System ===
-echo -e "${GREEN}Updating system and installing required packages...${NC}"
+# Cap nhat va cai dat goi can thiet
+echo -e "${GREEN}Dang cap nhat he thong va cai dat goi can thiet...${NC}"
 apt update && apt upgrade -y >> $LOG_FILE 2>&1
 apt install -y curl sudo ufw nginx certbot python3-certbot-nginx docker.io docker-compose >> $LOG_FILE 2>&1
 
-# === Setup Firewall ===
-echo -e "${GREEN}Setting up firewall...${NC}"
+# Cau hinh Firewall
+echo -e "${GREEN}Dang cau hinh tuong lua (firewall)...${NC}"
 ufw allow OpenSSH
 ufw allow 80
 ufw allow 443
 ufw --force enable
 
-# === Create Directories ===
-echo -e "${GREEN}Creating directories...${NC}"
+# Tao thu muc
+echo -e "${GREEN}Dang tao thu muc can thiet...${NC}"
 mkdir -p $INSTALL_DIR $BACKUP_DIR
 cd $INSTALL_DIR
 
-# === Create .env File ===
-echo -e "${GREEN}Creating environment configuration...${NC}"
+# Tao file .env
+echo -e "${GREEN}Dang tao file cau hinh moi truong...${NC}"
 cat > .env <<EOF
 POSTGRES_DB=$POSTGRES_DB
 POSTGRES_USER=$POSTGRES_USER
@@ -74,8 +74,8 @@ GENERIC_TIMEZONE=$TIMEZONE
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 EOF
 
-# === Create docker-compose.yml ===
-echo -e "${GREEN}Creating Docker Compose file...${NC}"
+# Tao file docker-compose.yml
+echo -e "${GREEN}Dang tao file docker-compose.yml...${NC}"
 cat > docker-compose.yml <<EOF
 version: '3.8'
 
@@ -118,12 +118,12 @@ services:
       - postgres
 EOF
 
-# === Start Services ===
-echo -e "${GREEN}Starting Docker containers...${NC}"
+# Khoi dong docker-compose
+echo -e "${GREEN}Dang khoi dong cac container Docker...${NC}"
 docker-compose up -d >> $LOG_FILE 2>&1
 
-# === Setup nginx Config ===
-echo -e "${GREEN}Setting up nginx reverse proxy...${NC}"
+# Cau hinh nginx
+echo -e "${GREEN}Dang cau hinh nginx...${NC}"
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -156,28 +156,28 @@ EOF
 ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
 nginx -t && systemctl reload nginx
 
-# === Obtain SSL Certificate ===
-echo -e "${GREEN}Obtaining SSL Certificate with Certbot...${NC}"
+# Lay SSL Cert
+echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
 certbot --nginx --non-interactive --agree-tos -m admin@$DOMAIN_NAME -d $DOMAIN_NAME
 
-# === Setup Auto Backup Script ===
-echo -e "${GREEN}Setting up auto backup script...${NC}"
+# Backup tu dong
+echo -e "${GREEN}Dang tao script backup tu dong...${NC}"
 cat > /usr/local/bin/backup_n8n.sh <<EOF
 #!/bin/bash
 DATE=\$(date +%F)
 cd $INSTALL_DIR
 tar -czf $BACKUP_DIR/n8n_data_\$DATE.tar.gz ./n8n_data
 docker exec n8n_postgres_1 pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_DIR/n8n_db_\$DATE.sql
-find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \;
+find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \\;
 EOF
 
 chmod +x /usr/local/bin/backup_n8n.sh
 
-# === Setup Cronjob ===
-echo -e "${GREEN}Adding cronjob for daily backup at 2 AM...${NC}"
+# Them cronjob
+echo -e "${GREEN}Dang them cronjob backup hang ngay...${NC}"
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
 
-# === Finish ===
-echo -e "${GREEN}=== Installation Completed Successfully! ===${NC}"
-echo -e "${GREEN}Access your n8n instance at: https://$DOMAIN_NAME${NC}"
-echo -e "${GREEN}Daily backups will be stored in $BACKUP_DIR (keeping last 7 days).${NC}"
+# Ket thuc
+echo -e "${GREEN}=== Cai dat thanh cong! ===${NC}"
+echo -e "${GREEN}Ban co the truy cap n8n tai: https://$DOMAIN_NAME${NC}"
+echo -e "${GREEN}Backup duoc luu tai: $BACKUP_DIR (giu 7 ngay gan nhat)${NC}"
