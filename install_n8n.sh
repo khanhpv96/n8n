@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO VERSION V2 ===
-# By OpenAI Assistant - Customized for Community Sharing
+# === n8n Auto Installer - PRO V3 ===
+# Chạy cho VPS Ubuntu 20.04/22.04 sạch sẽ.
 
 # Mau sac
 GREEN='\033[0;32m'
@@ -10,15 +10,15 @@ NC='\033[0m'
 
 # Kiem tra quyen root
 if [ "$(id -u)" != "0" ]; then
-   echo -e "${RED}Loi: Ban phai chay script nay bang quyen root!${NC}"
+   echo -e "${RED}Ban phai chay script nay bang root!${NC}"
    exit 1
 fi
 
 clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - Final Version ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V3 ===${NC}"
 
 # Nhap domain
-echo "Nhap domain hoac subdomain (vi du: n8n.tenmien.com):"
+echo "Nhap domain hoac subdomain (VD: n8n.example.com):"
 read DOMAIN_NAME
 
 # Tu dong tao thong tin
@@ -34,59 +34,52 @@ BACKUP_DIR="/opt/backups"
 TIMEZONE="Asia/Ho_Chi_Minh"
 
 # Cap nhat he thong
+echo -e "${GREEN}Dang cap nhat he thong...${NC}"
 apt update && apt upgrade -y
 
 # Cai dat goi can thiet
+echo -e "${GREEN}Dang cai dat Docker, nginx, Certbot...${NC}"
 apt install -y curl sudo ufw nginx certbot python3-certbot-nginx docker.io docker-compose
+
+# Bat va enable docker
 systemctl start docker
 systemctl enable docker
 
-# Kiem tra docker
-if ! command -v docker >/dev/null 2>&1; then
-    echo -e "${RED}Docker khong duoc cai dat dung. Thoat.${NC}"
-    exit 1
-fi
-
-# Tuong lua
+# Bat firewall
 ufw allow OpenSSH
 ufw allow 80
 ufw allow 443
 ufw --force enable
 
-# Xoa cai dat cu (neu co)
-if [ -d "$INSTALL_DIR" ]; then
-    echo -e "${RED}Phat hien n8n cu, dang xoa...${NC}"
-    cd $INSTALL_DIR
-    docker-compose down
-    cd /
-    rm -rf $INSTALL_DIR
-fi
+# Xoa cau hinh nginx cu (neu co)
 rm -f /etc/nginx/sites-available/n8n
 rm -f /etc/nginx/sites-enabled/n8n
 
-# Tao dummy nginx config de certbot hoat dong
-echo -e "${GREEN}Tao file nginx tam thoi cho certbot...${NC}"
+# Tao file nginx tam thoi chi HTTP
+echo -e "${GREEN}Dang tao file nginx tam thoi...${NC}"
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
     server_name $DOMAIN_NAME;
     location / {
-        return 200 'n8n install in progress';
+        return 200 'n8n installation ongoing';
     }
 }
 EOF
+
 ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
 nginx -t && systemctl reload nginx
 
 # Lay SSL
 echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
-certbot --nginx --non-interactive --agree-tos -m admin@$DOMAIN_NAME -d $DOMAIN_NAME
+certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d $DOMAIN_NAME
 
-# Tao folder install
+# Tao thu muc
 mkdir -p $INSTALL_DIR $BACKUP_DIR
 cd $INSTALL_DIR
 
 # Tao file .env
+echo -e "${GREEN}Tao file .env...${NC}"
 cat > .env <<EOF
 POSTGRES_DB=$POSTGRES_DB
 POSTGRES_USER=$POSTGRES_USER
@@ -98,7 +91,8 @@ GENERIC_TIMEZONE=$TIMEZONE
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 EOF
 
-# Tao file docker-compose.yml
+# Tao docker-compose.yml
+echo -e "${GREEN}Tao file docker-compose.yml...${NC}"
 cat > docker-compose.yml <<EOF
 version: '3.8'
 
@@ -141,10 +135,11 @@ services:
       - postgres
 EOF
 
-# Khoi dong container
+# Khoi dong Docker
+echo -e "${GREEN}Dang khoi dong Docker container...${NC}"
 docker-compose up -d
 
-# Cap nhat lai nginx proxy chinh thuc
+# Update nginx proxy HTTPS thuc su
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -176,7 +171,7 @@ EOF
 
 nginx -t && systemctl reload nginx
 
-# Backup script
+# Tao script backup
 cat > /usr/local/bin/backup_n8n.sh <<EOF
 #!/bin/bash
 DATE=\$(date +%F)
@@ -188,10 +183,11 @@ EOF
 
 chmod +x /usr/local/bin/backup_n8n.sh
 
-# Cronjob backup
+# Dat cronjob backup
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
 
-# Hoan tat
+# Xuat thong tin
+clear
 echo -e "${GREEN}=== CAI DAT HOAN TAT! ===${NC}"
 echo -e "👉 Truy cap n8n: https://$DOMAIN_NAME"
 echo -e ""
@@ -205,4 +201,4 @@ echo -e "Database: $POSTGRES_DB"
 echo -e "User: $POSTGRES_USER"
 echo -e "Password: $POSTGRES_PASSWORD"
 echo -e ""
-echo -e "${GREEN}Backup tu dong tai: $BACKUP_DIR (giu 7 ngay gan nhat).${NC}"
+echo -e "${GREEN}Backup duoc tao tai: $BACKUP_DIR (giu 7 ngay).${NC}"
