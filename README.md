@@ -1,81 +1,75 @@
-# Trợ Lập Trình Tự Động n8n - Bản Cải Tiến (PRO Version)
+# Cài Đặt Tự Động n8n Trên VPS Ubuntu
 
-Script giúp cài đặt **n8n** tự động trên VPS Ubuntu 20.04/22.04 dành cho người mới, không cần biết lập trình.
-
-> Chỉ cần 1 dòng lệnh để cài đặt đầy đủ Docker, PostgreSQL, nginx SSL, n8n, Backup!
+Script này giúp cài đặt nhanh chóng n8n (môt công cụ workflow automation mở nguồn) trên VPS Ubuntu 20.04 hoặc 22.04 vửa mua (fresh OS), hoàn toàn tự động, hợp với người dùng không có kinh nghiệm lập trình.
 
 ---
 
-## ✨ Tính năng nổi bật
-
-- Tự động cài Docker, Docker-Compose, nginx, Certbot.
-- Thiết lập **n8n** và **PostgreSQL** qua Docker Compose.
-- Thiết lập nginx proxy ngược có SSL Let's Encrypt.
-- Tự động sinh mã Encryption Key cho n8n.
-- Tự động tạo thông tin PostgreSQL và n8n đăng nhập.
-- Kiểm tra và gỡ bỏ cài đặt n8n cũ nếu có.
-- Tự động backup dữ liệu hàng ngày.
-- Tự xóa backup cũ hơn 7 ngày, tránh đầy VPS.
-- Đặt cronjob backup vào 2h sáng mỗi ngày.
-- Hiển thị log chi tiết trong quá trình cài đặt để người dùng dễ theo dõi.
+## ✨ Tính Năng
+- Tự động sinh tên người dùng + mật khẩu + database
+- Cài Docker, Docker Compose, Nginx, Certbot
+- Tự xin SSL Let's Encrypt
+- Tự gỡ cài trước đó (nếu có)
+- Tự backup hàng ngày + cronjob
+- Thông báo thông tin sau khi cài xong
 
 ---
 
-## 📚 Yêu cầu trước khi cài
+## 📄 Cách Cài Đặt
 
-- VPS Ubuntu 20.04 hoặc 22.04.
-- Tên miền (domain) hoặc subdomain đã được trỏ về đúng IP VPS.
-- Quyền root trên VPS.
-
----
-
-## 🔄 Cài đặt nhanh với 1 dòng lệnh
-
+### 1. SSH vào VPS vừa mua:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/main/install_n8n.sh)
+ssh root@IP_VPS
 ```
 
-> ⚠️ Lưu ý: Hãy đảm bảo domain/subdomain đã được DNS trỏ về đúng IP VPS trước khi chạy script.
+### 2. Chạy script cài n8n:
+```bash
+bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/refs/heads/main/install_n8n.sh)
+```
+
+Sau đó, bạn chỉ cần nhập domain/subdomain bạn sở hữu (VD: `n8n.tenmiencuaban.com`).
+
+Script sẽ lo hết mọi thứ còn lại.
 
 ---
 
-## 📚 Trong khi cài, bạn sẽ được hỏi:
-
-| Bước | Nhập thông tin |
-|:---|:---|
-| 1 | Nhập domain/subdomain |
-
-Các thông tin về Database và Tài khoản đăng nhập n8n sẽ được tự động tạo.
+## 🚪 Đăng Nhập
+Sau khi cài đặt, bạn sẽ thấy thông tin truy cập n8n như sau:
+- Đường dẫn truy cập: `https://tenmiencuaban.com`
+- Username: `admin_xxxx`
+- Password: `xxxxxx`
 
 ---
 
-## 🔓 Sau khi cài xong
+## 🧰 Kết Nối Node PostgreSQL trong n8n
+Khi tạo node PostgreSQL, dùng thông tin sau:
 
-- Truy cập website: `https://yourdomain.com`
-- Thông tin đăng nhập n8n và kết nối Database sẽ được in ra màn hình.
-- Backup hàng ngày được lưu tại: `/opt/backups/`
-- Chỉ giữ lại backup trong 7 ngày gần nhất.
-
-### Thông tin kết nối node PostgreSQL trên n8n:
-
-| Thông tin | Giá trị |
-|:---|:---|
-| Host | postgres |
-| Database | POSTGRES_DB (tự động tạo) |
-| User | POSTGRES_USER (tự động tạo) |
-| Password | POSTGRES_PASSWORD (tự động tạo) |
+```
+Host: postgres
+Database: <in ra sau khi cài>
+User: <in ra sau khi cài>
+Password: <in ra sau khi cài>
+```
 
 ---
 
-## 💡 Lưu ý thêm
-
-- Backup khôi phục dễ dàng nếu VPS gặp sự cố.
-- Certbot đã thiết lập tự động gia hạn SSL.
+## ⚖️ Backup
+- Backup tự động tại: `/opt/backups`
+- Dữ liệu sẽ được tự xóa sau 7 ngày
 
 ---
 
-## 📈 Bản quyền
+## 🚫 Gỡ Cài n8n
+Muốn gỡ hoàn toàn n8n:
+```bash
+bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/refs/heads/main/uninstall_n8n.sh)
+```
 
-Miễn phí cho cá nhân và cộng đồng.
+---
 
-> Nếu bạn thấy hữu ích, hãy cho repo một “⭐ Star” và chia sẻ để giúp nhiều người hơn nhé!
+## 📄 Gợi Ý Kiến
+- Vui lòng chia sẻ script này tới cộng đồng nếu hữ ích!
+- Góp ý/bug: https://github.com/vankhanhdhv/n8n
+
+---
+
+✅ Mọi đóng góp và chia sẻ để giúp nhiều người dùng n8n hiệu quả hơn!
