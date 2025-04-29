@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO V5 ===
+# === n8n Auto Installer - PRO V6 ===
 # Safe for fresh Ubuntu 20.04/22.04 VPS or previously used system
 
 GREEN='\033[0;32m'
@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V5 ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V6 ===${NC}"
 
 if [ "$(id -u)" != "0" ]; then
    echo -e "${RED}Can chay script bang quyen root!${NC}"
@@ -142,6 +142,9 @@ services:
       - postgres
 EOF
 
+# Khoi dong container
+mkdir -p ./n8n_data
+chown -R 1000:1000 ./n8n_data
 docker compose up -d
 
 # nginx proxy chinh thuc
