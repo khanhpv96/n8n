@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO VERSION - Final ===
-# Customized for community use
+# === n8n Auto Installer - PRO VERSION V2 ===
+# By OpenAI Assistant - Customized for Community Sharing
 
 # Mau sac
 GREEN='\033[0;32m'
@@ -13,12 +13,6 @@ if [ "$(id -u)" != "0" ]; then
    echo -e "${RED}Loi: Ban phai chay script nay bang quyen root!${NC}"
    exit 1
 fi
-
-# Bien
-INSTALL_DIR="/opt/n8n"
-BACKUP_DIR="/opt/backups"
-TIMEZONE="Asia/Ho_Chi_Minh"
-LOG_FILE="$INSTALL_DIR/install.log"
 
 clear
 echo -e "${GREEN}=== Bat dau cai dat n8n PRO - Final Version ===${NC}"
@@ -35,34 +29,64 @@ N8N_BASIC_USER="admin_$(openssl rand -hex 2)"
 N8N_BASIC_PASSWORD="$(openssl rand -base64 12)"
 N8N_ENCRYPTION_KEY=$(openssl rand -base64 32)
 
-# Cap nhat va cai goi can thiet
-echo -e "${GREEN}Dang cap nhat he thong va cai dat cac goi can thiet...${NC}"
-apt update && apt upgrade -y
-echo -e "${GREEN}Dang cai dat cac goi can thiet, vui long cho doi...${NC}"
-apt install -y curl sudo ufw nginx certbot python3-certbot-nginx docker.io docker-compose
-systemctl enable docker
-systemctl start docker
-echo -e "${GREEN}Cai dat goi can thiet hoan tat.${NC}"
+INSTALL_DIR="/opt/n8n"
+BACKUP_DIR="/opt/backups"
+TIMEZONE="Asia/Ho_Chi_Minh"
 
-# Kiem tra neu n8n cu ton tai thi xoa
+# Cap nhat he thong
+apt update && apt upgrade -y
+
+# Cai dat goi can thiet
+apt install -y curl sudo ufw nginx certbot python3-certbot-nginx docker.io docker-compose
+systemctl start docker
+systemctl enable docker
+
+# Kiem tra docker
+if ! command -v docker >/dev/null 2>&1; then
+    echo -e "${RED}Docker khong duoc cai dat dung. Thoat.${NC}"
+    exit 1
+fi
+
+# Tuong lua
+ufw allow OpenSSH
+ufw allow 80
+ufw allow 443
+ufw --force enable
+
+# Xoa cai dat cu (neu co)
 if [ -d "$INSTALL_DIR" ]; then
-    echo -e "${RED}Phat hien cai dat n8n cu, dang xoa...${NC}"
+    echo -e "${RED}Phat hien n8n cu, dang xoa...${NC}"
     cd $INSTALL_DIR
     docker-compose down
     cd /
     rm -rf $INSTALL_DIR
 fi
-rm -f /etc/nginx/sites-enabled/n8n
 rm -f /etc/nginx/sites-available/n8n
-systemctl reload nginx
+rm -f /etc/nginx/sites-enabled/n8n
 
-# Tao moi thu muc
-echo -e "${GREEN}Dang tao thu muc moi...${NC}"
+# Tao dummy nginx config de certbot hoat dong
+echo -e "${GREEN}Tao file nginx tam thoi cho certbot...${NC}"
+cat > /etc/nginx/sites-available/n8n <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
+    location / {
+        return 200 'n8n install in progress';
+    }
+}
+EOF
+ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
+nginx -t && systemctl reload nginx
+
+# Lay SSL
+echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
+certbot --nginx --non-interactive --agree-tos -m admin@$DOMAIN_NAME -d $DOMAIN_NAME
+
+# Tao folder install
 mkdir -p $INSTALL_DIR $BACKUP_DIR
 cd $INSTALL_DIR
 
 # Tao file .env
-echo -e "${GREEN}Dang tao file .env...${NC}"
 cat > .env <<EOF
 POSTGRES_DB=$POSTGRES_DB
 POSTGRES_USER=$POSTGRES_USER
@@ -74,8 +98,7 @@ GENERIC_TIMEZONE=$TIMEZONE
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 EOF
 
-# Tao docker-compose.yml
-echo -e "${GREEN}Dang tao docker-compose.yml...${NC}"
+# Tao file docker-compose.yml
 cat > docker-compose.yml <<EOF
 version: '3.8'
 
@@ -118,12 +141,10 @@ services:
       - postgres
 EOF
 
-# Khoi dong docker
-echo -e "${GREEN}Dang khoi dong Docker...${NC}"
+# Khoi dong container
 docker-compose up -d
 
-# Cau hinh nginx
-echo -e "${GREEN}Dang cau hinh nginx...${NC}"
+# Cap nhat lai nginx proxy chinh thuc
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -144,7 +165,7 @@ server {
         proxy_pass http://localhost:5678/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \"upgrade\";
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-Proto \$scheme;
@@ -153,15 +174,9 @@ server {
 }
 EOF
 
-ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
 nginx -t && systemctl reload nginx
 
-# Lay SSL
-echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
-certbot --nginx --non-interactive --agree-tos -m admin@$DOMAIN_NAME -d $DOMAIN_NAME
-
-# Tao backup script
-echo -e "${GREEN}Dang tao script backup...${NC}"
+# Backup script
 cat > /usr/local/bin/backup_n8n.sh <<EOF
 #!/bin/bash
 DATE=\$(date +%F)
@@ -173,8 +188,7 @@ EOF
 
 chmod +x /usr/local/bin/backup_n8n.sh
 
-# Them cronjob backup
-echo -e "${GREEN}Them cronjob backup hang ngay...${NC}"
+# Cronjob backup
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
 
 # Hoan tat
@@ -191,4 +205,4 @@ echo -e "Database: $POSTGRES_DB"
 echo -e "User: $POSTGRES_USER"
 echo -e "Password: $POSTGRES_PASSWORD"
 echo -e ""
-echo -e "${GREEN}Backup duoc tu dong tao o thu muc: $BACKUP_DIR (giu 7 ngay gan nhat).${NC}"
+echo -e "${GREEN}Backup tu dong tai: $BACKUP_DIR (giu 7 ngay gan nhat).${NC}"
