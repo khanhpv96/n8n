@@ -93,14 +93,14 @@ và sau đó chạy lại các lệnh như trên.
 ## 🚫 Gỡ Cài Đặt n8n
 Muốn gỡ hoàn toàn n8n và dữ liệu liên quan:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/refs/heads/main/uninstall_n8n.sh)
+bash <(curl -s https://raw.githubusercontent.com/khanhpv96/n8n/refs/heads/main/uninstall_n8n.sh)
 ```
 
 ---
 
 ## 💬 Góp Ý và Đóng Góp
 - Hãy chia sẻ script này nếu bạn thấy hữu ích!
-- Gửi góp ý/báo lỗi tại: https://github.com/vankhanhdhv/n8n
+- Gửi góp ý/báo lỗi tại: https://github.com/khanhpv96/n8n
 
 ---
 
