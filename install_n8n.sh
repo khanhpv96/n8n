@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === n8n Auto Installer - PRO VERSION ===
-# Customized by OpenAI for Community Share - 2024
+# Customized by Khanh Pham
 # Target: Ubuntu 20.04/22.04 Fresh Install
 
 # === Colors ===
