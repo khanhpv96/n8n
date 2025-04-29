@@ -1,27 +1,24 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO V3 ===
-# Chạy cho VPS Ubuntu 20.04/22.04 sạch sẽ.
+# === n8n Auto Installer - PRO V4 ===
+# Cho VPS Ubuntu 20.04/22.04 sạch.
 
-# Mau sac
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Kiem tra quyen root
 if [ "$(id -u)" != "0" ]; then
    echo -e "${RED}Ban phai chay script nay bang root!${NC}"
    exit 1
 fi
 
 clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V3 ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V4 ===${NC}"
 
-# Nhap domain
 echo "Nhap domain hoac subdomain (VD: n8n.example.com):"
 read DOMAIN_NAME
 
-# Tu dong tao thong tin
+# Tao thong tin random
 POSTGRES_DB="n8n_$(openssl rand -hex 4)"
 POSTGRES_USER="n8nuser_$(openssl rand -hex 2)"
 POSTGRES_PASSWORD="$(openssl rand -base64 12)"
@@ -33,30 +30,47 @@ INSTALL_DIR="/opt/n8n"
 BACKUP_DIR="/opt/backups"
 TIMEZONE="Asia/Ho_Chi_Minh"
 
-# Cap nhat he thong
-echo -e "${GREEN}Dang cap nhat he thong...${NC}"
+# Cap nhat
+echo -e "${GREEN}Cap nhat he thong...${NC}"
 apt update && apt upgrade -y
 
-# Cai dat goi can thiet
-echo -e "${GREEN}Dang cai dat Docker, nginx, Certbot...${NC}"
-apt install -y curl sudo ufw nginx certbot python3-certbot-nginx docker.io docker-compose
+# Goi can thiet
+echo -e "${GREEN}Cai dat goi can thiet...${NC}"
+apt install -y curl sudo ufw nginx certbot python3-certbot-nginx gnupg2 ca-certificates lsb-release apt-transport-https software-properties-common
 
-# Bat va enable docker
+# Go docker cu
+apt remove -y docker docker.io docker-compose containerd runc || true
+
+# Cai Docker moi nhat
+echo -e "${GREEN}Cai dat Docker moi nhat...${NC}"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Kiem tra Docker
+docker --version
+docker compose version
+
+# Khoi dong Docker
 systemctl start docker
 systemctl enable docker
 
-# Bat firewall
+# Tuong lua
 ufw allow OpenSSH
 ufw allow 80
 ufw allow 443
 ufw --force enable
 
-# Xoa cau hinh nginx cu (neu co)
+# Xoa nginx cu
 rm -f /etc/nginx/sites-available/n8n
 rm -f /etc/nginx/sites-enabled/n8n
 
-# Tao file nginx tam thoi chi HTTP
-echo -e "${GREEN}Dang tao file nginx tam thoi...${NC}"
+# Nginx tam thoi
+echo -e "${GREEN}Tao file nginx tam thoi...${NC}"
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -70,7 +84,7 @@ EOF
 ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
 nginx -t && systemctl reload nginx
 
-# Lay SSL
+# SSL
 echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
 certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d $DOMAIN_NAME
 
@@ -78,7 +92,7 @@ certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email 
 mkdir -p $INSTALL_DIR $BACKUP_DIR
 cd $INSTALL_DIR
 
-# Tao file .env
+# .env
 echo -e "${GREEN}Tao file .env...${NC}"
 cat > .env <<EOF
 POSTGRES_DB=$POSTGRES_DB
@@ -91,7 +105,7 @@ GENERIC_TIMEZONE=$TIMEZONE
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 EOF
 
-# Tao docker-compose.yml
+# docker-compose.yml
 echo -e "${GREEN}Tao file docker-compose.yml...${NC}"
 cat > docker-compose.yml <<EOF
 version: '3.8'
@@ -136,10 +150,10 @@ services:
 EOF
 
 # Khoi dong Docker
-echo -e "${GREEN}Dang khoi dong Docker container...${NC}"
-docker-compose up -d
+echo -e "${GREEN}Khoi dong container Docker...${NC}"
+docker compose up -d
 
-# Update nginx proxy HTTPS thuc su
+# Chinh lai nginx proxy thuc su
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -171,7 +185,7 @@ EOF
 
 nginx -t && systemctl reload nginx
 
-# Tao script backup
+# Script backup
 cat > /usr/local/bin/backup_n8n.sh <<EOF
 #!/bin/bash
 DATE=\$(date +%F)
@@ -183,10 +197,10 @@ EOF
 
 chmod +x /usr/local/bin/backup_n8n.sh
 
-# Dat cronjob backup
+# Cronjob backup
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
 
-# Xuat thong tin
+# Ket thuc
 clear
 echo -e "${GREEN}=== CAI DAT HOAN TAT! ===${NC}"
 echo -e "👉 Truy cap n8n: https://$DOMAIN_NAME"
@@ -201,4 +215,4 @@ echo -e "Database: $POSTGRES_DB"
 echo -e "User: $POSTGRES_USER"
 echo -e "Password: $POSTGRES_PASSWORD"
 echo -e ""
-echo -e "${GREEN}Backup duoc tao tai: $BACKUP_DIR (giu 7 ngay).${NC}"
+echo -e "${GREEN}Backup tu dong tai: $BACKUP_DIR (giu 7 ngay).${NC}"
