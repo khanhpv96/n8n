@@ -12,16 +12,19 @@ Script giúp cài đặt **n8n** tự động trên VPS Ubuntu 20.04/22.04 dành
 - Thiết lập **n8n** và **PostgreSQL** qua Docker Compose.
 - Thiết lập nginx proxy ngược có SSL Let's Encrypt.
 - Tự động sinh mã Encryption Key cho n8n.
+- Tự động tạo thông tin PostgreSQL và n8n đăng nhập.
+- Kiểm tra và gỡ bỏ cài đặt n8n cũ nếu có.
 - Tự động backup dữ liệu hàng ngày.
 - Tự xóa backup cũ hơn 7 ngày, tránh đầy VPS.
 - Đặt cronjob backup vào 2h sáng mỗi ngày.
+- Hiển thị log chi tiết trong quá trình cài đặt để người dùng dễ theo dõi.
 
 ---
 
 ## 📚 Yêu cầu trước khi cài
 
 - VPS Ubuntu 20.04 hoặc 22.04.
-- Tên miên (domain) hoặc subdomain đã được trỏ về đúng IP VPS.
+- Tên miền (domain) hoặc subdomain đã được trỏ về đúng IP VPS.
 - Quyền root trên VPS.
 
 ---
@@ -41,20 +44,26 @@ bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/main/install_n8
 | Bước | Nhập thông tin |
 |:---|:---|
 | 1 | Nhập domain/subdomain |
-| 2 | Nhập mật khẩu Database PostgreSQL |
-| 3 | Nhập tên đăng nhập n8n |
-| 4 | Nhập mật khẩu đăng nhập n8n |
 
-Sau khi nhập xong, script tự động chạy đến khi hoàn thành.
+Các thông tin về Database và Tài khoản đăng nhập n8n sẽ được tự động tạo.
 
 ---
 
 ## 🔓 Sau khi cài xong
 
 - Truy cập website: `https://yourdomain.com`
-- Đăng nhập với username và password bạn vừa nhập.
+- Thông tin đăng nhập n8n và kết nối Database sẽ được in ra màn hình.
 - Backup hàng ngày được lưu tại: `/opt/backups/`
 - Chỉ giữ lại backup trong 7 ngày gần nhất.
+
+### Thông tin kết nối node PostgreSQL trên n8n:
+
+| Thông tin | Giá trị |
+|:---|:---|
+| Host | postgres |
+| Database | POSTGRES_DB (tự động tạo) |
+| User | POSTGRES_USER (tự động tạo) |
+| Password | POSTGRES_PASSWORD (tự động tạo) |
 
 ---
 
@@ -67,6 +76,6 @@ Sau khi nhập xong, script tự động chạy đến khi hoàn thành.
 
 ## 📈 Bản quyền
 
-Miễn phí cho cá nhân và công đồng.
+Miễn phí cho cá nhân và cộng đồng.
 
-> Nếu bạn thấy hữu ích, hãy cho repo một “⭐ Star” và chia sẻ để giúc nhiều người hơn nhé!
+> Nếu bạn thấy hữu ích, hãy cho repo một “⭐ Star” và chia sẻ để giúp nhiều người hơn nhé!
