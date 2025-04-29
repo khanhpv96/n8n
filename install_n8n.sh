@@ -1,22 +1,21 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO V4 ===
-# Cho VPS Ubuntu 20.04/22.04 sạch.
+# === n8n Auto Installer - PRO V5 ===
+# Safe for fresh Ubuntu 20.04/22.04 VPS or previously used system
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+clear
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V5 ===${NC}"
+
 if [ "$(id -u)" != "0" ]; then
-   echo -e "${RED}Ban phai chay script nay bang root!${NC}"
+   echo -e "${RED}Can chay script bang quyen root!${NC}"
    exit 1
 fi
 
-clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V4 ===${NC}"
-
-echo "Nhap domain hoac subdomain (VD: n8n.example.com):"
-read DOMAIN_NAME
+read -p "Nhap domain hoac subdomain (VD: n8n.example.com): " DOMAIN_NAME
 
 # Tao thong tin random
 POSTGRES_DB="n8n_$(openssl rand -hex 4)"
@@ -25,67 +24,63 @@ POSTGRES_PASSWORD="$(openssl rand -base64 12)"
 N8N_BASIC_USER="admin_$(openssl rand -hex 2)"
 N8N_BASIC_PASSWORD="$(openssl rand -base64 12)"
 N8N_ENCRYPTION_KEY=$(openssl rand -base64 32)
-
 INSTALL_DIR="/opt/n8n"
 BACKUP_DIR="/opt/backups"
 TIMEZONE="Asia/Ho_Chi_Minh"
 
-# Cap nhat
-echo -e "${GREEN}Cap nhat he thong...${NC}"
+# Giai phong cai dat cu neu co
+echo -e "${GREEN}Kiem tra va go bo cai dat n8n cu neu ton tai...${NC}"
+if [ -d "$INSTALL_DIR" ]; then
+  cd $INSTALL_DIR
+  docker compose down || true
+  docker system prune -af || true
+  rm -rf $INSTALL_DIR
+fi
+rm -rf $BACKUP_DIR
+
+# Cap nhat he thong va go docker cu
 apt update && apt upgrade -y
-
-# Goi can thiet
-echo -e "${GREEN}Cai dat goi can thiet...${NC}"
-apt install -y curl sudo ufw nginx certbot python3-certbot-nginx gnupg2 ca-certificates lsb-release apt-transport-https software-properties-common
-
-# Go docker cu
 apt remove -y docker docker.io docker-compose containerd runc || true
 
-# Cai Docker moi nhat
-echo -e "${GREEN}Cai dat Docker moi nhat...${NC}"
+# Cai dat Docker moi
+apt install -y ca-certificates curl gnupg lsb-release ufw nginx certbot python3-certbot-nginx software-properties-common
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+echo \  
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \  
   $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt update
 apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Kiem tra Docker
-docker --version
-docker compose version
-
-# Khoi dong Docker
+# Kiem tra docker daemon
 systemctl start docker
 systemctl enable docker
+if ! docker info >/dev/null 2>&1; then
+  echo -e "${RED}Docker daemon khong hoat dong. Kiem tra lai.${NC}"
+  exit 1
+fi
 
-# Tuong lua
+# Mo firewall
 ufw allow OpenSSH
 ufw allow 80
 ufw allow 443
 ufw --force enable
 
-# Xoa nginx cu
-rm -f /etc/nginx/sites-available/n8n
-rm -f /etc/nginx/sites-enabled/n8n
-
-# Nginx tam thoi
-echo -e "${GREEN}Tao file nginx tam thoi...${NC}"
+# Setup nginx tam de xin SSL
+rm -f /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/n8n
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
     server_name $DOMAIN_NAME;
     location / {
-        return 200 'n8n installation ongoing';
+        return 200 'n8n install is setting up';
     }
 }
 EOF
-
-ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/ || true
+ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 
 # SSL
-echo -e "${GREEN}Dang lay SSL Let's Encrypt...${NC}"
 certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d $DOMAIN_NAME
 
 # Tao thu muc
@@ -93,7 +88,6 @@ mkdir -p $INSTALL_DIR $BACKUP_DIR
 cd $INSTALL_DIR
 
 # .env
-echo -e "${GREEN}Tao file .env...${NC}"
 cat > .env <<EOF
 POSTGRES_DB=$POSTGRES_DB
 POSTGRES_USER=$POSTGRES_USER
@@ -106,7 +100,6 @@ N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 EOF
 
 # docker-compose.yml
-echo -e "${GREEN}Tao file docker-compose.yml...${NC}"
 cat > docker-compose.yml <<EOF
 version: '3.8'
 
@@ -149,11 +142,9 @@ services:
       - postgres
 EOF
 
-# Khoi dong Docker
-echo -e "${GREEN}Khoi dong container Docker...${NC}"
 docker compose up -d
 
-# Chinh lai nginx proxy thuc su
+# nginx proxy chinh thuc
 cat > /etc/nginx/sites-available/n8n <<EOF
 server {
     listen 80;
@@ -182,37 +173,30 @@ server {
     }
 }
 EOF
-
 nginx -t && systemctl reload nginx
 
-# Script backup
+# backup tu dong
 cat > /usr/local/bin/backup_n8n.sh <<EOF
 #!/bin/bash
 DATE=\$(date +%F)
 cd $INSTALL_DIR
 tar -czf $BACKUP_DIR/n8n_data_\$DATE.tar.gz ./n8n_data
 docker exec n8n_postgres_1 pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_DIR/n8n_db_\$DATE.sql
-find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \\;
+find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \\
 EOF
-
 chmod +x /usr/local/bin/backup_n8n.sh
-
-# Cronjob backup
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
 
-# Ket thuc
+# Xuat thong tin
 clear
 echo -e "${GREEN}=== CAI DAT HOAN TAT! ===${NC}"
 echo -e "👉 Truy cap n8n: https://$DOMAIN_NAME"
-echo -e ""
-echo -e "=== THONG TIN DANG NHAP ==="
+echo -e "\n=== DANG NHAP n8n ==="
 echo -e "Username: $N8N_BASIC_USER"
 echo -e "Password: $N8N_BASIC_PASSWORD"
-echo -e ""
-echo -e "=== KET NOI DATABASE (Node PostgreSQL) ==="
+echo -e "\n=== DATABASE (Node PostgreSQL) ==="
 echo -e "Host: postgres"
 echo -e "Database: $POSTGRES_DB"
 echo -e "User: $POSTGRES_USER"
 echo -e "Password: $POSTGRES_PASSWORD"
-echo -e ""
-echo -e "${GREEN}Backup tu dong tai: $BACKUP_DIR (giu 7 ngay).${NC}"
+echo -e "\nBackup tai: $BACKUP_DIR (tu dong xoa sau 7 ngay)"
