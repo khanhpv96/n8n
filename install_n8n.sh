@@ -194,9 +194,6 @@ chmod +x /usr/local/bin/backup_n8n.sh
 clear
 echo -e "${GREEN}=== CAI DAT HOAN TAT! ===${NC}"
 echo -e "👉 Truy cap n8n: https://$DOMAIN_NAME"
-echo -e "\n=== DANG NHAP n8n ==="
-echo -e "Username: $N8N_BASIC_USER"
-echo -e "Password: $N8N_BASIC_PASSWORD"
 echo -e "\n=== DATABASE (Node PostgreSQL) ==="
 echo -e "Host: postgres"
 echo -e "Database: $POSTGRES_DB"
