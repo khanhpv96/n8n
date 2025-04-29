@@ -11,6 +11,7 @@ Script này giúp cài đặt nhanh chóng n8n (một công cụ workflow automa
 - Tự kiểm tra và gỡ cài đặt cũ nếu có
 - Tự backup hàng ngày + tạo cronjob
 - Hiển thị thông tin quan trọng sau khi cài đặt
+- Tự động phân quyền thư mục tránh lỗi 502/permission
 
 ---
 
@@ -55,6 +56,38 @@ Password: (được in ra sau khi cài đặt)
 - Tự động tạo backup hàng ngày tại: `/opt/backups`
 - Các bản backup sẽ được **tự xóa sau 7 ngày**
 
+### 🧑‍💻 Backup thủ công:
+```bash
+bash /usr/local/bin/backup_n8n.sh
+```
+
+### 🗂 Khôi phục thủ công sau khi cài lại:
+1. Copy lại file n8n_data.tar.gz và n8n_db.sql về thư mục `/opt/n8n`
+2. Giải nén và khôi phục:
+```bash
+tar -xzf n8n_data.tar.gz -C /opt/n8n/
+cat n8n_db.sql | docker exec -i n8n_postgres_1 psql -U n8nuser_xxxx n8n_xxxx
+```
+
+---
+
+## 🚀 Cập Nhật n8n lên Phiên Bản Mới
+Nếu bạn dùng image mặc định (`docker.n8n.io/n8nio/n8n`), bạn chỉ cần:
+```bash
+cd /opt/n8n
+docker pull docker.n8n.io/n8nio/n8n
+docker compose down
+docker compose up -d
+```
+
+Không cần chỉnh sửa file docker-compose.yml.
+
+Nếu bạn muốn dùng phiên bản cụ thể (VD: `1.45.0`), hãy sửa dòng trong `docker-compose.yml`:
+```yaml
+image: docker.n8n.io/n8nio/n8n:1.45.0
+```
+và sau đó chạy lại các lệnh như trên.
+
 ---
 
 ## 🚫 Gỡ Cài Đặt n8n
@@ -71,4 +104,4 @@ bash <(curl -s https://raw.githubusercontent.com/vankhanhdhv/n8n/refs/heads/main
 
 ---
 
-✅ Cảm ơn bạn đã sử dụng n8n auto installer!
+✅ Chúc các bạn thành công!
