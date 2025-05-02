@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO V6.1 ===
+# === n8n Auto Installer - PRO V6.2 ===
 # Safe for fresh Ubuntu 20.04/22.04 VPS or previously used system
 
 GREEN='\033[0;32m'
@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V6.1 ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V6.2 ===${NC}"
 
 if [ "$(id -u)" != "0" ]; then
    echo -e "${RED}Can chay script bang quyen root!${NC}"
@@ -52,8 +52,16 @@ echo \
 apt update
 apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Cau hinh DNS cho Docker de fix loi AI Agent
+echo -e "${GREEN}Cau hinh DNS cho Docker...${NC}"
+cat > /etc/docker/daemon.json <<EOF
+{
+  "dns": ["8.8.8.8", "1.1.1.1"]
+}
+EOF
+systemctl restart docker
+
 # Kiem tra docker daemon
-systemctl start docker
 systemctl enable docker
 if ! docker info >/dev/null 2>&1; then
   echo -e "${RED}Docker daemon khong hoat dong. Kiem tra lai.${NC}"
@@ -122,6 +130,9 @@ services:
   n8n:
     image: docker.n8n.io/n8nio/n8n
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
@@ -197,7 +208,7 @@ DATE=\$(date +%F)
 cd $INSTALL_DIR
 tar -czf $BACKUP_DIR/n8n_data_\$DATE.tar.gz ./n8n_data
 docker exec n8n_postgres_1 pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_DIR/n8n_db_\$DATE.sql
-find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \
+find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \;
 EOF
 chmod +x /usr/local/bin/backup_n8n.sh
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
