@@ -24,7 +24,7 @@ ssh root@IP_VPS
 
 ### 2. Chạy script cài đặt n8n:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/khanhpv96/n8n/refs/heads/main/install_n8n.sh)
+bash <(curl -s https://raw.githubusercontent.com/khanhpv96/n8n/main/install_n8n.sh)
 ```
 
 Bạn sẽ được yêu cầu nhập domain/subdomain bạn sở hữu (VD: `n8n.tenmiencuaban.com`).
@@ -93,7 +93,7 @@ và sau đó chạy lại các lệnh như trên.
 ## 🚫 Gỡ Cài Đặt n8n
 Muốn gỡ hoàn toàn n8n và dữ liệu liên quan:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/khanhpv96/n8n/refs/heads/main/uninstall_n8n.sh)
+bash <(curl -s https://raw.githubusercontent.com/khanhpv96/n8n/main/uninstall_n8n.sh)
 ```
 
 ---
