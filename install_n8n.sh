@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# === n8n Auto Installer - PRO V6 ===
+# === n8n Auto Installer - PRO V6.1 ===
 # Safe for fresh Ubuntu 20.04/22.04 VPS or previously used system
 
 GREEN='\033[0;32m'
@@ -8,7 +8,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 clear
-echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V6 ===${NC}"
+echo -e "${GREEN}=== Bat dau cai dat n8n PRO - V6.1 ===${NC}"
 
 if [ "$(id -u)" != "0" ]; then
    echo -e "${RED}Can chay script bang quyen root!${NC}"
@@ -46,8 +46,8 @@ apt remove -y docker docker.io docker-compose containerd runc || true
 apt install -y ca-certificates curl gnupg lsb-release ufw nginx certbot python3-certbot-nginx software-properties-common
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo \  
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \  
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt update
 apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -75,6 +75,7 @@ server {
     location / {
         return 200 'n8n install is setting up';
     }
+    client_max_body_size 50M;
 }
 EOF
 ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/
@@ -97,6 +98,10 @@ N8N_BASIC_AUTH_USER=$N8N_BASIC_USER
 N8N_BASIC_AUTH_PASSWORD=$N8N_BASIC_PASSWORD
 GENERIC_TIMEZONE=$TIMEZONE
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
+EXECUTIONS_DATA_SAVE_ON_SUCCESS=none
+EXECUTIONS_DATA_SAVE_ON_ERROR=all
+EXECUTIONS_DATA_MAX_AGE=168
+N8N_PAYLOAD_SIZE_MAX=50
 EOF
 
 # docker-compose.yml
@@ -134,6 +139,10 @@ services:
       - WEBHOOK_URL=https://\${DOMAIN_NAME}/
       - GENERIC_TIMEZONE=\${GENERIC_TIMEZONE}
       - N8N_ENCRYPTION_KEY=\${N8N_ENCRYPTION_KEY}
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=\${EXECUTIONS_DATA_SAVE_ON_SUCCESS}
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=\${EXECUTIONS_DATA_SAVE_ON_ERROR}
+      - EXECUTIONS_DATA_MAX_AGE=\${EXECUTIONS_DATA_MAX_AGE}
+      - N8N_PAYLOAD_SIZE_MAX=\${N8N_PAYLOAD_SIZE_MAX}
     ports:
       - "5678:5678"
     volumes:
@@ -153,6 +162,7 @@ server {
     listen 80;
     server_name $DOMAIN_NAME;
     return 301 https://\$host\$request_uri;
+    client_max_body_size 50M;
 }
 
 server {
@@ -163,6 +173,8 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 50M;
 
     location / {
         proxy_pass http://localhost:5678/;
@@ -185,7 +197,7 @@ DATE=\$(date +%F)
 cd $INSTALL_DIR
 tar -czf $BACKUP_DIR/n8n_data_\$DATE.tar.gz ./n8n_data
 docker exec n8n_postgres_1 pg_dump -U $POSTGRES_USER $POSTGRES_DB > $BACKUP_DIR/n8n_db_\$DATE.sql
-find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \\
+find $BACKUP_DIR/ -type f -mtime +7 -exec rm {} \
 EOF
 chmod +x /usr/local/bin/backup_n8n.sh
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/backup_n8n.sh") | crontab -
